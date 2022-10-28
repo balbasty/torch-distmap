@@ -15,7 +15,7 @@ and therefore does not allow backpropagation.
 ## Installation
 
 ```shell
-pip install git+https://github.com/balbasty/torch-distmap
+pip install torch-distmap
 ```
 
 ## API
