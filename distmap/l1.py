@@ -2,6 +2,7 @@ __all__ = ['l1_distance_transform', 'l1_signed_transform']
 
 from .utils import make_vector
 from ._l1 import l1dt_1d_
+from . import backend, jitfields
 import torch
 
 
@@ -30,6 +31,9 @@ def l1_distance_transform(x, ndim=None, vx=1):
           Theory of Computing (2012)
           https://www.theoryofcomputing.org/articles/v008a019/v008a019.pdf
     """
+    if backend.jitfields and jitfields.available:
+        return jitfields.l1_distance_transform(x, ndim, vx)
+
     dtype = x.dtype if x.dtype.is_floating_point else torch.get_default_dtype()
     x = x.to(dtype, copy=True)
     x.masked_fill_(x > 0, float('inf'))
