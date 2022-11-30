@@ -1,6 +1,6 @@
 __all__ = ['euclidean_distance_transform', 'euclidean_signed_transform']
 
-import jitfields
+from . import jitfields
 from .utils import make_vector
 from ._l1 import l1dt_1d_
 from ._l2 import edt_1d
