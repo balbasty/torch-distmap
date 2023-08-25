@@ -1,0 +1,40 @@
+name: Run tests
+description: Run tests
+inputs:
+  tag:
+    description: 'Commit / Branch / Tag / SHA to checkout'
+    required: false
+    default: ''
+  python-version:
+    description: 'Python version'
+    required: true
+    default: '3.6'
+  pytorch-version:
+    description: 'PyTorch version'
+    required: true
+    default: '1.8'
+runs:
+  using: "composite"
+  steps:
+    - uses: actions/checkout@v3
+      with:
+        ref: ${{ inputs.tag }}
+    - uses: conda-incubator/setup-miniconda@v2
+      with:
+        mamba-version: "*"
+        python-version: ${{ inputs.python-version }}
+        channels: conda-forge,pytorch,defaults
+        activate-environment: test-env
+    - name: Install dependencies
+      shell: bash -el {0}
+      env: 
+        PYTORCH_VERSION: ${{ inputs.pytorch-version }}
+      run: |
+        mamba install pytorch=${PYTORCH_VERSION} cppyy numpy pytest
+    - name: Test with pytest
+      shell: bash -el {0}
+      run: |
+        pip install "torch==${PYTORCH_VERSION}" pytest
+        [ "${PYTORCH_VERSION}" == "1.4" ] && pip install numpy
+        pip install .
+        pytest pytest --pyargs distmap
