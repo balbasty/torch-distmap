@@ -14,6 +14,18 @@ and therefore does not allow backpropagation.
 
 ## Installation
 
+### Dependency
+
+- `torch >= 1.3`
+
+### Conda
+
+```shell
+conda install torch-distmap -c balbasty -c pytorch
+```
+
+### Pip
+
 ```shell
 pip install torch-distmap
 ```
