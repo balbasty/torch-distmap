@@ -1,5 +1,5 @@
 try:
-    import jitfields
+    import jitfields.distance
     available = True
 except (ImportError, ModuleNotFoundError):
     jitfields = None
@@ -9,8 +9,8 @@ import torch
 
 
 def euclidean_distance_transform(x, ndim=None, vx=1):
-    return jitfields.euclidean_distance_transform(x, ndim, vx)
+    return jitfields.distance.euclidean_distance_transform(x, ndim, vx)
 
 
 def l1_distance_transform(x, ndim=None, vx=1):
-    return jitfields.l1_distance_transform(x, ndim, vx)
+    return jitfields.distance.l1_distance_transform(x, ndim, vx)
