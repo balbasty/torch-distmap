@@ -1,5 +1,6 @@
 __all__ = ['euclidean_distance_transform', 'euclidean_signed_transform']
 
+from . import backend, jitfields
 from .utils import make_vector
 from ._l1 import l1dt_1d_
 from ._l2 import edt_1d
@@ -31,6 +32,9 @@ def euclidean_distance_transform(x, ndim=None, vx=1):
           Theory of Computing (2012)
           https://www.theoryofcomputing.org/articles/v008a019/v008a019.pdf
     """
+    if backend.jitfields and jitfields.available:
+        return jitfields.euclidean_distance_transform(x, ndim, vx)
+
     dtype = x.dtype if x.dtype.is_floating_point else torch.get_default_dtype()
     x = x.to(dtype, copy=True)
     x.masked_fill_(x > 0, float('inf'))
