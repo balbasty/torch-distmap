@@ -1,5 +1,5 @@
 {% set name = "torch-distmap" %}
-{% set version = "0.1.0" %}
+{% set version = "0.2.0" %}
 
 package:
   name: "{{ name|lower }}"
@@ -7,7 +7,7 @@ package:
 
 source:
   url: https://pypi.io/packages/source/{{ name[0] }}/{{ name }}/{{ name }}-{{ version }}.tar.gz
-  sha256: dbc57eaa42d037bc31ff2d8702928bcc05de44cfaf7b57b2ba784551e91a244a
+  sha256: 634ed0d63c2f096fa9b2ac6a57d1e2cc4528eef11ee75488265d8cce9a27b574
 
 build:
   number: 0
