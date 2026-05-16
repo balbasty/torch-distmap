@@ -1,10 +1,10 @@
 import torch
-from .jit_utils import movedim1, list_reverse_int
+from ._jit_utils import movedim1, list_reverse_int, jitscript
 from typing import List
 Tensor = torch.Tensor
 
 
-@torch.jit.script
+@jitscript
 def l1dt_1d_(f, dim: int = -1, w: float = 1.):
     """Algorithm 2 in "Distance Transforms of Sampled Functions"
     Pedro F. Felzenszwalb & Daniel P. Huttenlocher
@@ -26,7 +26,7 @@ def l1dt_1d_(f, dim: int = -1, w: float = 1.):
     return f
 
 
-@torch.jit.script
+@jitscript
 def l1dt_1d(f, dim: int = -1, w: float = 1.):
     """Algorithm 2 in "Distance Transforms of Sampled Functions"
     Pedro F. Felzenszwalb & Daniel P. Huttenlocher
