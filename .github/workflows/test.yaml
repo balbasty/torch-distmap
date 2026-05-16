@@ -50,12 +50,20 @@ jobs:
           channels: conda-forge,pytorch
           conda-remove-defaults: "true"
           activate-environment: test-env
-      - name: Install dependencies
+      - name: Install dependencies (using mamba)
         shell: bash -el {0}
         env:
           PYTORCH_VERSION: ${{ inputs.pytorch-version }}
         run: |
-          mamba install pytorch=${PYTORCH_VERSION} pytest
+          mamba install pytest
+          [[ "$PYTORCH_VERSION" != "1.4" ]] && mamba install pytorch=${PYTORCH_VERSION}
+      - name: Install dependencies (using pip)
+        if: ${{ inputs.pytorch-version == '1.4' }}
+        shell: bash -el {0}
+        env:
+          PYTORCH_VERSION: ${{ inputs.pytorch-version }}
+        run: |
+          pip install torch==${PYTORCH_VERSION}
       - name: Test with pytest
         shell: bash -el {0}
         run: |

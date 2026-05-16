@@ -82,7 +82,7 @@ jobs:
       shell: bash
       env:
         TAG: ${{ inputs.tag }}
-        PACKAGE: torch-bounds
+        PACKAGE: torch-distmap
       run: |
         python -c \
         '
