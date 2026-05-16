@@ -63,9 +63,14 @@ jobs:
         env:
           PYTORCH_VERSION: ${{ inputs.pytorch-version }}
         run: |
-          pip install torch==${PYTORCH_VERSION}
+          pip install "numpy<1.24" "torch==${PYTORCH_VERSION}"
       - name: Test with pytest
         shell: bash -el {0}
+        env:
+          # This is to avoid a
+          PYTHONIOENCODING: utf-8
+          LANG: en_US.UTF-8
+          LC_ALL: en_US.UTF-8
         run: |
           pip install .
           pytest
