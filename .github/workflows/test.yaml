@@ -55,8 +55,8 @@ jobs:
         env:
           PYTORCH_VERSION: ${{ inputs.pytorch-version }}
         run: |
-          mamba install pytest
           [[ "$PYTORCH_VERSION" != "1.4" ]] && mamba install pytorch=${PYTORCH_VERSION}
+          mamba install pytest
       - name: Install dependencies (using pip)
         if: ${{ inputs.pytorch-version == '1.4' }}
         shell: bash -el {0}
