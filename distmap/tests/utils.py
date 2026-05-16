@@ -10,6 +10,6 @@ def make_ndsphere(ndim, shape=64):
     shape1 = shape
     shape = (shape,) * ndim
     x = make_cartesian_grid(shape)
-    x = x.square().sum(-1).sqrt()
+    x = (x*x).sum(-1) ** 0.5
     x = (x < shape1/3)
     return x
