@@ -1,5 +1,5 @@
 import torch
-from .jit_utils import movedim1, square
+from ._jit_utils import movedim1, square, jitscript
 Tensor = torch.Tensor
 
 
@@ -9,7 +9,7 @@ else:
     _true_div = torch.div
 
 
-@torch.jit.script
+@jitscript
 def edt_1d_fillin(f, v, z, w2: float = 1.):
     # process along the first dimension
     #
@@ -36,7 +36,7 @@ def edt_1d_fillin(f, v, z, w2: float = 1.):
     return d
 
 
-@torch.jit.script
+@jitscript
 def edt_1d_intersection(f, v, z, k, q: int, w2: float = 1.):
     vk = v.gather(0, k[None])[0]
     fvk = f.gather(0, vk[None])[0]
@@ -48,7 +48,7 @@ def edt_1d_intersection(f, v, z, k, q: int, w2: float = 1.):
     return s, mask
 
 
-@torch.jit.script
+@jitscript
 def edt_1d(f, dim: int = -1, w: float = 1.):
     """Algorithm 1 in "Distance Transforms of Sampled Functions"
     Pedro F. Felzenszwalb & Daniel P. Huttenlocher

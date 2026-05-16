@@ -1,0 +1,62 @@
+name: Run tests
+description: Run tests
+
+on:
+
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Commit / Branch / Tag / SHA to checkout'
+        required: false
+        default: ''
+      python-version:
+        description: 'Python version'
+        required: true
+        default: '3.6'
+      pytorch-version:
+        description: 'PyTorch version'
+        required: true
+        default: '1.8'
+
+  workflow_call:
+    inputs:
+      tag:
+        description: 'Commit / Branch / Tag / SHA to checkout'
+        required: false
+        default: ''
+        type: string
+      python-version:
+        description: 'Python version'
+        required: true
+        default: '3.6'
+        type: string
+      pytorch-version:
+        description: 'PyTorch version'
+        required: true
+        default: '1.8'
+        type: string
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag }}
+      - uses: conda-incubator/setup-miniconda@v3
+        with:
+          mamba-version: "*"
+          python-version: ${{ inputs.python-version }}
+          channels: conda-forge,pytorch,defaults
+          activate-environment: test-env
+      - name: Install dependencies
+        shell: bash -el {0}
+        env:
+          PYTORCH_VERSION: ${{ inputs.pytorch-version }}
+        run: |
+          mamba install pytorch=${PYTORCH_VERSION} pytest
+      - name: Test with pytest
+        shell: bash -el {0}
+        run: |
+          pip install .
+          pytest

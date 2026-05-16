@@ -1,0 +1,73 @@
+name: Publish to PyPi
+description: Publish to PyPi
+
+on:
+  workflow_dispatch:
+    inputs:
+      python-version:
+        description: 'Python version'
+        required: false
+        default: '3.6'
+      tag:
+        description: 'Commit / Branch / Tag / SHA to checkout'
+        required: false
+        default: ''
+      test:
+        description: 'Test PyPI'
+        required: false
+        default: false
+        type: boolean
+      password:
+        required: true
+
+  workflow_call:
+    inputs:
+      python-version:
+        description: 'Python version'
+        required: false
+        default: '3.6'
+        type: string
+      tag:
+        description: 'Commit / Branch / Tag / SHA to checkout'
+        required: false
+        default: ''
+        type: string
+      test:
+        description: 'Test PyPI'
+        required: false
+        default: false
+        type: boolean
+    secrets:
+      password:
+        required: true
+
+jobs:
+  publish-pypi:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ inputs.tag }}
+
+      - name: Setup Python ${{ inputs.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ inputs.python-version }}
+
+      - name: Install dependencies for building package
+        run: |
+          python -m pip install --upgrade pip
+          pip install setuptools wheel twine
+        shell: bash
+
+      - name: Build a binary wheel and a source tarball
+        run: |
+          python setup.py sdist bdist_wheel
+        shell: bash
+
+      - name: Publish distribution 📦 to Test PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          password: ${{ secrets.password }}
+          repository-url: ${{ inputs.test && 'https://test.pypi.org/legacy/' || 'https://upload.pypi.org/legacy/' }}

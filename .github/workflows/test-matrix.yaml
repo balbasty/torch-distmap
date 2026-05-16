@@ -1,0 +1,40 @@
+name: Run matrix of tests
+description: Run matrix of tests
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Commit / Branch / Tag / SHA to checkout'
+        required: false
+        default: ''
+
+  workflow_call:
+    inputs:
+      tag:
+        description: 'Commit / Branch / Tag / SHA to checkout'
+        required: false
+        default: ''
+        type: string
+
+jobs:
+  test:
+    strategy:
+      matrix:
+        include:
+          - python-version: "3.7"
+            pytorch-version: "1.4"
+          - python-version: "3.7"
+            pytorch-version: "1.8"
+          - python-version: "3.9"
+            pytorch-version: "1.11"
+          - python-version: "3.11"
+            pytorch-version: "2.0"
+          - python-version: "3.14"
+            pytorch-version: "2.10"
+
+    uses: ./.github/workflows/test.yaml
+    with:
+      tag: ${{ inputs.tag }}
+      python-version: ${{ matrix.python-version }}
+      pytorch-version: ${{ matrix.pytorch-version }}
