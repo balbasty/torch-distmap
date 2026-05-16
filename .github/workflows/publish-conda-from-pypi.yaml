@@ -67,10 +67,11 @@ jobs:
         DRYRUN: ${{ inputs.dry-run }}
         OVERRIDE: ${{ inputs.override }}
       run: echo "$TAG // $PLATFORMS // $DRYRUN // $OVERRIDE"
-    - uses: conda-incubator/setup-miniconda@v2
+    - uses: conda-incubator/setup-miniconda@v3
       with:
         mamba-version: "*"
-        channels: conda-forge,defaults
+        channels: conda-forge
+        conda-remove-defaults: "true"
         channel-priority: true
         activate-environment: build
     - name: Install boa / anaconda / python / requests
