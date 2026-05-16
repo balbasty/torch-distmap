@@ -58,5 +58,5 @@ jobs:
       - name: Test with pytest
         shell: bash -el {0}
         run: |
-          pip install ".[test]"
+          pip install .
           pytest
