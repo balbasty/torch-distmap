@@ -9,7 +9,8 @@ def make_cartesian_grid(shape):
 def make_ndsphere(ndim, shape=64):
     shape1 = shape
     shape = (shape,) * ndim
-    x = make_cartesian_grid(shape)
+    x = make_cartesian_grid(shape).to(torch.float)
+    x -= (torch.tensor(shape) - 1) * 0.5
     x = (x*x).sum(-1) ** 0.5
-    x = (x < shape1/3)
+    x = (x < shape1 * (1/3))
     return x
