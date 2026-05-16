@@ -1,4 +1,5 @@
 name: Test package and publish
+description: Test package and publish
 
 on:
   workflow_dispatch:
@@ -29,76 +30,131 @@ on:
       python-version:
         description: 'Python version'
         required: false
-        default: '3.7'
+        default: '3.13'
       conda-platforms:
         description: 'Target platforms'
         required: false
         default: 'noarch'
 
+  workflow_call:
+    inputs:
+      tag:
+        description: 'Commit / Branch / Tag / SHA to checkout'
+        required: false
+        default: ''
+        type: string
+      test:
+        description: 'Run tests'
+        required: false
+        default: true
+        type: boolean
+      publish:
+        description: 'Publish'
+        required: false
+        default: 'none'
+        type: string
+      python-version:
+        description: 'Python version'
+        required: false
+        default: '3.13'
+        type: string
+      conda-platforms:
+        description: 'Target platforms'
+        required: false
+        default: 'noarch'
+        type: string
+    secrets:
+      PYPI_TOKEN:
+        required: true
+      TEST_PYPI_TOKEN:
+        required: true
+      ANACONDA_TOKEN:
+        required: true
+
 jobs:
-  test:
+  tests:
     if: inputs.test
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        include:
-          - python-version: "3.7"
-            pytorch-version: "1.4"
-          - python-version: "3.7"
-            pytorch-version: "1.8"
-          - python-version: "3.9"
-            pytorch-version: "1.11"
-          - python-version: "3.11"
-            pytorch-version: "2.0"
-    steps:
-      - uses: actions/checkout@v3
-      - uses: ./.github/actions/test
-        with:
-          python-version: ${{ matrix.python-version }}
-          pytorch-version: ${{ matrix.pytorch-version }}
-          tag: ${{ inputs.tag }}
+    uses: ./.github/workflows/test-matrix.yaml
+    with:
+      tag: ${{ inputs.tag }}
 
-  publish:
-    if: inputs.test && inputs.publish != 'none'
-    needs: test
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - uses: ./.github/actions/pypi
-        if: |
-          contains(inputs.publish, 'pypi') || contains(inputs.publish, 'test')
-        with:
-          python-version: ${{ inputs.python-version }}
-          publish: ${{ inputs.publish }}
-          tag: ${{ inputs.tag }}
-          pypi-password: ${{ secrets.PYPI_TOKEN }}
-          test-password: ${{ secrets.TEST_PYPI_TOKEN }}
-      - uses: ./.github/actions/conda
-        if: contains(inputs.publish, 'conda')
-        with:
-          tag: ${{ inputs.tag }}
-          platforms: ${{ inputs.conda-platforms }}
-          dry_run: ${{ contains(inputs.publish, 'dry') }}
-          password: ${{ secrets.ANACONDA_TOKEN }}
+  publish-testpypi-if-tests:
+    if: ${{ inputs.test && contains(inputs.publish, 'test') }}
+    needs: tests
+    uses: ./.github/workflows/publish-pypi.yaml
+    with:
+      python-version: ${{ inputs.python-version }}
+      tag: ${{ inputs.tag }}
+      test: true
+    secrets:
+      password: ${{ secrets.TEST_PYPI_TOKEN }}
 
-  publish-only:
-    if: (!inputs.test) && inputs.publish != 'none'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - uses: ./.github/actions/pypi
-        if: |
-          contains(inputs.publish, 'pypi') || contains(inputs.publish, 'test')
-        with:
-          python-version: ${{ inputs.python-version }}
-          publish: ${{ inputs.publish }}
-          tag: ${{ inputs.tag }}
-          pypi-password: ${{ secrets.PYPI_TOKEN }}
-          test-password: ${{ secrets.TEST_PYPI_TOKEN }}
-      - uses: ./.github/actions/conda
-        if: contains(inputs.publish, 'conda')
-        with:
-          tag: ${{ inputs.tag }}
-          platforms: ${{ inputs.conda-platforms }}
-          dry-run: ${{ contains(inputs.publish, 'dry') }}
-          password: ${{ secrets.ANACONDA_TOKEN }}
+  publish-testpypi-always:
+    if: ${{ !inputs.test && contains(inputs.publish, 'test') }}
+    uses: ./.github/workflows/publish-pypi.yaml
+    with:
+      python-version: ${{ inputs.python-version }}
+      tag: ${{ inputs.tag }}
+      test: true
+    secrets:
+      password: ${{ secrets.TEST_PYPI_TOKEN }}
+
+  publish-pypi-if-testpypi-and-tests:
+    if: ${{ inputs.test && contains(inputs.publish, 'pypi') && contains(inputs.publish, 'test') }}
+    needs: publish-testpypi-if-tests
+    uses: ./.github/workflows/publish-pypi.yaml
+    with:
+      python-version: ${{ inputs.python-version }}
+      tag: ${{ inputs.tag }}
+    secrets:
+      password: ${{ secrets.PYPI_TOKEN }}
+
+  publish-pypi-if-tests:
+    if: ${{ inputs.test && contains(inputs.publish, 'pypi') && !contains(inputs.publish, 'test') }}
+    needs: tests
+    uses: ./.github/workflows/publish-pypi.yaml
+    with:
+      python-version: ${{ inputs.python-version }}
+      tag: ${{ inputs.tag }}
+    secrets:
+      password: ${{ secrets.PYPI_TOKEN }}
+
+  publish-pypi-if-testpypi:
+    if: ${{ !inputs.test && contains(inputs.publish, 'pypi') && contains(inputs.publish, 'test') }}
+    needs: publish-testpypi-always
+    uses: ./.github/workflows/publish-pypi.yaml
+    with:
+      python-version: ${{ inputs.python-version }}
+      tag: ${{ inputs.tag }}
+    secrets:
+      password: ${{ secrets.PYPI_TOKEN }}
+
+  publish-pypi-always:
+    if: ${{ !inputs.test && contains(inputs.publish, 'pypi') && !contains(inputs.publish, 'test') }}
+    uses: ./.github/workflows/publish-pypi.yaml
+    with:
+      python-version: ${{ inputs.python-version }}
+      tag: ${{ inputs.tag }}
+    secrets:
+      password: ${{ secrets.PYPI_TOKEN }}
+
+  publish-conda-if-tests:
+    if: ${{ inputs.test && contains(inputs.publish, 'conda') }}
+    needs: tests
+    uses: ./.github/workflows/publish-conda.yaml
+    with:
+      tag: ${{ inputs.tag }}
+      platforms: ${{ inputs.conda-platforms }}
+      dry-run: ${{ contains(inputs.publish, 'dry') }}
+    secrets:
+      ANACONDA_TOKEN: ${{ secrets.ANACONDA_TOKEN }}
+
+  publish-conda-always:
+    if: ${{ !inputs.test && contains(inputs.publish, 'conda') }}
+    uses: ./.github/workflows/publish-conda.yaml
+    with:
+      tag: ${{ inputs.tag }}
+      platforms: ${{ inputs.conda-platforms }}
+      dry-run: ${{ contains(inputs.publish, 'dry') }}
+    secrets:
+      ANACONDA_TOKEN: ${{ secrets.ANACONDA_TOKEN }}

@@ -1,0 +1,185 @@
+name: Build conda package from PyPI release & publish
+description: Build conda package from PyPI release & publish
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag'
+        required: true
+      dry-run:
+        description: 'Dry run'
+        required: false
+        default: false
+        type: boolean
+      python-version:
+        description: 'Python version'
+        required: false
+        default: '3.7'
+      platforms:
+        description: 'Target platforms'
+        required: false
+        default: 'noarch'
+      override:
+        description: 'Override'
+        required: false
+        default: true
+        type: boolean
+
+  workflow_call:
+    inputs:
+      tag:
+        description: 'Tag'
+        required: true
+        type: string
+      dry-run:
+        description: 'Dry run'
+        required: false
+        default: false
+        type: boolean
+      python-version:
+        description: 'Python version'
+        required: false
+        default: '3.7'
+        type: string
+      platforms:
+        description: 'Target platforms'
+        required: false
+        default: 'noarch'
+        type: string
+      override:
+        description: 'Override'
+        required: false
+        default: true
+        type: boolean
+    secrets:
+      ANACONDA_TOKEN:
+        required: true
+
+jobs:
+  publish-conda:
+    runs-on: ubuntu-latest
+    steps:
+    - shell: bash
+      env:
+        TAG: ${{ inputs.tag }}
+        PLATFORMS: ${{ inputs.platforms }}
+        DRYRUN: ${{ inputs.dry-run }}
+        OVERRIDE: ${{ inputs.override }}
+      run: echo "$TAG // $PLATFORMS // $DRYRUN // $OVERRIDE"
+    - uses: conda-incubator/setup-miniconda@v2
+      with:
+        mamba-version: "*"
+        channels: conda-forge,defaults
+        channel-priority: true
+        activate-environment: build
+    - name: Install boa / anaconda / python / requests
+      shell: bash -el {0}
+      run: |
+        mamba install boa anaconda-client python requests
+    - name: Get summary and sha256
+      shell: bash
+      env:
+        TAG: ${{ inputs.tag }}
+        PACKAGE: torch-bounds
+      run: |
+        python -c \
+        '
+        import os
+        import requests
+        tag = os.environ["TAG"]
+        package = os.environ["PACKAGE"]
+        json = requests.get(f"https://pypi.org/pypi/{package}/{tag}/json").json()
+        summary = json["info"].get("summary", "")
+        with open(os.environ["GITHUB_ENV"], "a") as f:
+          f.write(f"PYPI_SUMMARY={summary}\n")
+        for url in json["urls"]:
+            if url["packagetype"] == "sdist":
+                source = url["url"]
+                sha256 = url["digests"]["sha256"]
+                with open(os.environ["GITHUB_ENV"], "a") as f:
+                  f.write(f"PYPI_SHA256={sha256}\n")
+                  f.write(f"PYPI_SOURCE={source}\n")
+                break
+        '
+    - name: Create meta.yaml
+      shell: bash
+      env:
+        TAG: ${{ inputs.tag }}
+        PACKAGE: torch-bounds
+      run: |
+        cat >meta.yaml <<EOL
+        {% set name = "$PACKAGE" %}
+        {% set version = "$TAG" %}
+
+        package:
+          name: "{{ name|lower }}"
+          version: "{{ version }}"
+
+        source:
+          url: $PYPI_SOURCE
+          sha256: $PYPI_SHA256
+
+        build:
+          number: 0
+          script: {{ PYTHON }} -m pip install . -vv
+          noarch: python
+
+        requirements:
+          host:
+            - python >=3.6
+            - pip
+          run:
+            - python >=3.6
+            - pytorch >=1.3
+
+        test:
+          imports:
+            - bounds
+
+        about:
+          home: https://github.com/balbasty/{{ name }}
+          license: MIT
+          summary: $PYPI_SUMMARY
+          dev_url: https://github.com/balbasty/{{ name }}
+        EOL
+    - name: Build
+      shell: bash -el {0}
+      env:
+        PY: ${{ inputs.python-version }}
+      run: |
+        PY=($PY)
+        OPT=""
+        for V in "${PY[@]}"; do
+        OPT+=",${V}"
+        done
+        OPT="{python: [${OPT:1}]}"
+        conda mambabuild --variants "$OPT" -c pytorch --croot . .
+    - name: Convert
+      shell: bash -el {0}
+      env:
+        PLATFORMS: ${{ inputs.platforms }}
+      run: |
+        for PLATFORM in osx-64 osx-arm64 linux-32 linux-64 linux-ppc64 linux-s390x linux-armv6l linux-armv7l linux-aarch64 win-32 win-64
+        do
+          if [[ $PLATFORMS == *"all"* || $PLATFORMS == *"${PLATFORM}"* ]]; then
+            conda convert -p $PLATFORM linux-64/*.tar.bz2
+          fi
+        done
+    - name: "Publish (dry run: ${{ inputs.dry-run }})"
+      if: inputs.dry-run == 'false'
+      shell: bash -el {0}
+      env:
+        OVERRIDE: ${{ inputs.override }}
+        PLATFORMS: ${{ inputs.platforms }}
+        ANACONDA_API_TOKEN: ${{ secrets.ANACONDA_TOKEN }}
+      run: |
+        export ANACONDA_API_TOKEN
+        [[ "${OVERRIDE}" == "true" ]] && FORCE="--force" || FORCE=""
+
+        for PLATFORM in noarch osx-64 osx-arm64 linux-32 linux-64 linux-ppc64 linux-s390x linux-armv6l linux-armv7l linux-aarch64 win-32 win-64
+        do
+          if [[ $PLATFORMS == *"all"* || $PLATFORMS == *"${PLATFORM}"* ]]; then
+            anaconda upload ${FORCE} --label main ${PLATFORM}/*.tar.bz2
+          fi
+        done
