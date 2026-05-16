@@ -8,7 +8,7 @@ from ._l1 import l1dt_1d_
 from ._l2 import edt_1d
 
 
-def euclidean_distance_transform(x, ndim=None, vx=1):
+def euclidean_distance_transform(x, ndim=None, vx=1, squared=False):
     """Compute the Euclidean distance transform of a binary image
 
     Parameters
@@ -45,14 +45,12 @@ def euclidean_distance_transform(x, ndim=None, vx=1):
     x *= x
     for d, w in zip(range(1, ndim), vx[1:]):
         x = edt_1d(x, d - ndim, w)
-    if hasattr(x, 'sqrt_'):
-        x.sqrt_()
-    else:
-        x = x ** 0.5
+    if not squared:
+        x = x.double().sqrt_().to(dtype)
     return x
 
 
-def euclidean_signed_transform(x, ndim=None, vx=1):
+def euclidean_signed_transform(x, ndim=None, vx=1, squared=False):
     """Compute the signed Euclidean distance transform of a binary image
 
     Parameters
@@ -80,6 +78,6 @@ def euclidean_signed_transform(x, ndim=None, vx=1):
     """
     if x.dtype is not torch.bool:
         x = x > 0
-    d = euclidean_distance_transform(x, ndim, vx)
-    d -= euclidean_distance_transform(~x, ndim, vx)
+    d = euclidean_distance_transform(x, ndim, vx, squared)
+    d -= euclidean_distance_transform(~x, ndim, vx, squared)
     return d
