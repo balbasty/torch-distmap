@@ -41,10 +41,14 @@ def euclidean_distance_transform(x, ndim=None, vx=1):
     x.masked_fill_(x > 0, float('inf'))
     ndim = ndim or x.dim()
     vx = make_vector(vx, ndim, dtype=torch.float).tolist()
-    x = l1dt_1d_(x, -ndim, vx[0]).square_()
+    x = l1dt_1d_(x, -ndim, vx[0])
+    x *= x
     for d, w in zip(range(1, ndim), vx[1:]):
         x = edt_1d(x, d - ndim, w)
-    x.sqrt_()
+    if hasattr(x, 'sqrt_'):
+        x.sqrt_()
+    else:
+        x = x ** 0.5
     return x
 
 
